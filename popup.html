@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lead Locator</title>
+  <link rel="stylesheet" href="styles/popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <span class="logo-icon">&#9678;</span>
+        <h1>Lead Locator</h1>
+      </div>
+      <p class="tagline">Find clients for your niche product</p>
+    </header>
+
+    <!-- Product Profile Section -->
+    <section class="section" id="profile-section">
+      <h2>Your Product Niche</h2>
+      <div class="form-group">
+        <label for="product-name">Product Name</label>
+        <input type="text" id="product-name" placeholder="e.g. TableSync POS">
+      </div>
+      <div class="form-group">
+        <label for="niche-select">Target Industry</label>
+        <select id="niche-select">
+          <option value="">-- Select Industry --</option>
+          <option value="restaurant">Restaurants & Cafes</option>
+          <option value="gym">Gyms & Fitness Centers</option>
+          <option value="salon">Salons & Spas</option>
+          <option value="clinic">Clinics & Healthcare</option>
+          <option value="retail">Retail Stores</option>
+          <option value="hotel">Hotels & Hospitality</option>
+          <option value="realestate">Real Estate Agencies</option>
+          <option value="auto">Auto Repair & Dealerships</option>
+          <option value="education">Schools & Tutoring Centers</option>
+          <option value="pet">Pet Shops & Vet Clinics</option>
+          <option value="laundry">Laundry & Dry Cleaning</option>
+          <option value="construction">Construction & Contractors</option>
+          <option value="photography">Photography Studios</option>
+          <option value="custom">Custom (type below)</option>
+        </select>
+      </div>
+      <div class="form-group hidden" id="custom-niche-group">
+        <label for="custom-niche">Custom Search Term</label>
+        <input type="text" id="custom-niche" placeholder="e.g. coworking spaces">
+      </div>
+      <div class="form-group">
+        <label for="location-input">Location / Area</label>
+        <input type="text" id="location-input" placeholder="e.g. Austin, TX or Mumbai">
+      </div>
+      <button class="btn btn-primary" id="search-btn">
+        <span class="btn-icon">&#128269;</span> Search on Google Maps
+      </button>
+      <button class="btn btn-secondary" id="save-profile-btn">Save Profile</button>
+    </section>
+
+    <!-- Quick Search Presets -->
+    <section class="section">
+      <h2>Quick Search Presets</h2>
+      <div class="presets-grid" id="presets-grid">
+        <button class="preset-chip" data-query="restaurants near me">Restaurants</button>
+        <button class="preset-chip" data-query="gyms near me">Gyms</button>
+        <button class="preset-chip" data-query="salons near me">Salons</button>
+        <button class="preset-chip" data-query="clinics near me">Clinics</button>
+        <button class="preset-chip" data-query="retail stores near me">Retail</button>
+        <button class="preset-chip" data-query="hotels near me">Hotels</button>
+        <button class="preset-chip" data-query="auto repair near me">Auto</button>
+        <button class="preset-chip" data-query="pet shops near me">Pets</button>
+      </div>
+    </section>
+
+    <!-- Saved Leads Section -->
+    <section class="section">
+      <h2>
+        Saved Leads
+        <span class="badge" id="lead-count">0</span>
+      </h2>
+      <div id="leads-list" class="leads-list">
+        <p class="empty-state">No leads saved yet. Search and collect leads from Google Maps!</p>
+      </div>
+      <div class="leads-actions">
+        <button class="btn btn-secondary" id="export-csv-btn" disabled>Export CSV</button>
+        <button class="btn btn-danger" id="clear-leads-btn" disabled>Clear All</button>
+      </div>
+    </section>
+
+    <footer>
+      <p>Open Google Maps, then use the overlay panel to collect leads.</p>
+    </footer>
+  </div>
+
+  <script src="scripts/popup.js"></script>
+</body>
+</html>

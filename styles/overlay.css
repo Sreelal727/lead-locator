@@ -1,0 +1,321 @@
+/* Lead Locator Overlay on Google Maps */
+#ll-overlay-panel {
+  position: fixed;
+  top: 80px;
+  right: 16px;
+  width: 320px;
+  max-height: calc(100vh - 120px);
+  background: #0f0f1a;
+  border: 1px solid #2a2a3d;
+  border-radius: 14px;
+  z-index: 99999;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #e0e0e0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+#ll-overlay-panel.ll-collapsed {
+  max-height: 44px;
+  overflow: hidden;
+}
+
+#ll-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #1a1a2e, #16162b);
+  cursor: move;
+  user-select: none;
+  border-bottom: 1px solid #2a2a3d;
+}
+
+#ll-panel-header .ll-title {
+  font-size: 13px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #7c5cfc, #00d4aa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#ll-panel-header .ll-controls {
+  display: flex;
+  gap: 6px;
+}
+
+#ll-panel-header .ll-controls button {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+#ll-panel-header .ll-controls button:hover {
+  color: #e0e0e0;
+}
+
+#ll-panel-body {
+  padding: 12px 14px;
+  overflow-y: auto;
+  max-height: calc(100vh - 180px);
+}
+
+#ll-panel-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+#ll-panel-body::-webkit-scrollbar-thumb {
+  background: #2a2a3d;
+  border-radius: 4px;
+}
+
+/* Status bar */
+.ll-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 11px;
+}
+
+.ll-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00d4aa;
+  animation: ll-pulse 2s infinite;
+}
+
+.ll-status-dot.ll-idle {
+  background: #555;
+  animation: none;
+}
+
+@keyframes ll-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Scan Button */
+.ll-scan-btn {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #7c5cfc, #5a3de8);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: all 0.2s;
+}
+
+.ll-scan-btn:hover {
+  background: linear-gradient(135deg, #8d70ff, #6b4ef9);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 92, 252, 0.3);
+}
+
+.ll-scan-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Results */
+.ll-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ll-results-header h3 {
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ll-results-count {
+  font-size: 11px;
+  color: #7c5cfc;
+  font-weight: 600;
+}
+
+.ll-result-card {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3d;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+}
+
+.ll-result-card:hover {
+  border-color: #7c5cfc;
+}
+
+.ll-result-card .ll-biz-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e0e0e0;
+  margin-bottom: 3px;
+}
+
+.ll-result-card .ll-biz-category {
+  font-size: 10px;
+  color: #7c5cfc;
+  margin-bottom: 4px;
+}
+
+.ll-result-card .ll-biz-detail {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.ll-result-card .ll-biz-rating {
+  font-size: 11px;
+  color: #ffd700;
+  margin-bottom: 6px;
+}
+
+.ll-result-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ll-save-btn, .ll-open-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ll-save-btn {
+  background: #00d4aa22;
+  color: #00d4aa;
+  border: 1px solid #00d4aa44;
+}
+
+.ll-save-btn:hover {
+  background: #00d4aa33;
+}
+
+.ll-save-btn.ll-saved {
+  background: #00d4aa;
+  color: #0f0f1a;
+}
+
+.ll-open-btn {
+  background: #2a2a3d;
+  color: #b0b0c0;
+}
+
+.ll-open-btn:hover {
+  background: #353550;
+}
+
+/* Export bar */
+.ll-export-bar {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #2a2a3d;
+}
+
+.ll-export-bar button {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ll-export-csv {
+  background: #00d4aa22;
+  color: #00d4aa;
+  border: 1px solid #00d4aa44 !important;
+}
+
+.ll-export-csv:hover {
+  background: #00d4aa33;
+}
+
+.ll-select-all {
+  background: #2a2a3d;
+  color: #b0b0c0;
+}
+
+.ll-select-all:hover {
+  background: #353550;
+}
+
+/* Toggle button (floating) */
+#ll-toggle-btn {
+  position: fixed;
+  top: 80px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #7c5cfc, #5a3de8);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 99998;
+  box-shadow: 0 4px 16px rgba(124, 92, 252, 0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+#ll-toggle-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(124, 92, 252, 0.5);
+}
+
+/* No results */
+.ll-no-results {
+  text-align: center;
+  padding: 20px 10px;
+  color: #555;
+  font-size: 12px;
+}
+
+/* Spinner */
+.ll-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #2a2a3d;
+  border-top-color: #7c5cfc;
+  border-radius: 50%;
+  animation: ll-spin 0.6s linear infinite;
+}
+
+@keyframes ll-spin {
+  to { transform: rotate(360deg); }
+}
