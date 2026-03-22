@@ -51,6 +51,30 @@
         <label for="location-input">Location / Area</label>
         <input type="text" id="location-input" placeholder="e.g. Austin, TX or Mumbai">
       </div>
+      <div class="form-group">
+        <label for="strategy-select">Search Strategy</label>
+        <select id="strategy-select">
+          <option value="default">All businesses</option>
+          <option value="small">Small / local / independent</option>
+          <option value="new">Newly opened</option>
+          <option value="lowRated">Low-rated (need help)</option>
+          <option value="noWebsite">Without website</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Lead Quality Filters (applied after scan)</label>
+        <div class="filter-checks">
+          <label class="check-label">
+            <input type="checkbox" id="filter-no-website"> No website
+          </label>
+          <label class="check-label">
+            <input type="checkbox" id="filter-low-reviews"> Few reviews (&lt; 50)
+          </label>
+          <label class="check-label">
+            <input type="checkbox" id="filter-low-rating"> Low rating (&lt; 4.0)
+          </label>
+        </div>
+      </div>
       <button class="btn btn-primary" id="search-btn">
         <span class="btn-icon">&#128269;</span> Search on Google Maps
       </button>
@@ -61,14 +85,18 @@
     <section class="section">
       <h2>Quick Search Presets</h2>
       <div class="presets-grid" id="presets-grid">
-        <button class="preset-chip" data-query="restaurants near me">Restaurants</button>
-        <button class="preset-chip" data-query="gyms near me">Gyms</button>
-        <button class="preset-chip" data-query="salons near me">Salons</button>
-        <button class="preset-chip" data-query="clinics near me">Clinics</button>
-        <button class="preset-chip" data-query="retail stores near me">Retail</button>
-        <button class="preset-chip" data-query="hotels near me">Hotels</button>
-        <button class="preset-chip" data-query="auto repair near me">Auto</button>
-        <button class="preset-chip" data-query="pet shops near me">Pets</button>
+        <button class="preset-chip" data-query="small local restaurants">Restaurants</button>
+        <button class="preset-chip" data-query="independent gyms fitness">Gyms</button>
+        <button class="preset-chip" data-query="local salons barbershops">Salons</button>
+        <button class="preset-chip" data-query="small clinics private practice">Clinics</button>
+        <button class="preset-chip" data-query="local retail boutique shops">Retail</button>
+        <button class="preset-chip" data-query="small hotels bed and breakfast">Hotels</button>
+        <button class="preset-chip" data-query="local auto repair mechanic">Auto</button>
+        <button class="preset-chip" data-query="local pet shops grooming">Pets</button>
+        <button class="preset-chip" data-query="coworking spaces">Coworking</button>
+        <button class="preset-chip" data-query="local bakery cafe">Bakeries</button>
+        <button class="preset-chip" data-query="dental clinic private">Dentists</button>
+        <button class="preset-chip" data-query="yoga pilates studio">Studios</button>
       </div>
     </section>
 

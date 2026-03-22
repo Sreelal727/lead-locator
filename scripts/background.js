@@ -5,10 +5,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'OPEN_MAPS_SEARCH') {
     const query = encodeURIComponent(message.query);
     const url = `https://www.google.com/maps/search/${query}`;
+    const strategy = message.strategy || 'default';
     chrome.tabs.create({ url }, (tab) => {
+      // Store the strategy so the content script can pick it up
+      chrome.storage.local.set({ activeStrategy: strategy });
       sendResponse({ success: true, tabId: tab.id });
     });
-    return true; // keep message channel open for async response
+    return true;
   }
 
   if (message.type === 'GET_LEADS') {

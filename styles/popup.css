@@ -283,6 +283,38 @@ select option {
   font-size: 12px;
 }
 
+/* Filter Checks */
+.filter-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #b0b0c0;
+  cursor: pointer;
+  padding: 4px 10px;
+  background: #12121f;
+  border-radius: 14px;
+  border: 1px solid #2a2a3d;
+  transition: all 0.2s;
+}
+
+.check-label:hover {
+  border-color: #7c5cfc;
+}
+
+.check-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: #7c5cfc;
+}
+
 /* Hidden */
 .hidden {
   display: none !important;

@@ -305,6 +305,107 @@
   font-size: 12px;
 }
 
+/* Filters */
+.ll-filters {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border: 1px solid #2a2a3d;
+}
+
+.ll-filters-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+}
+
+.ll-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.ll-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #b0b0c0;
+  cursor: pointer;
+  padding: 3px 8px;
+  background: #12121f;
+  border-radius: 12px;
+  border: 1px solid #2a2a3d;
+  transition: all 0.2s;
+}
+
+.ll-filter-toggle:hover {
+  border-color: #7c5cfc;
+}
+
+.ll-filter-toggle input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: #7c5cfc;
+}
+
+/* Lead Score */
+.ll-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.ll-lead-score {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.ll-score-hot {
+  background: #ff6b3522;
+  color: #ff6b35;
+  border: 1px solid #ff6b3544;
+}
+
+.ll-score-warm {
+  background: #ffc10722;
+  color: #ffc107;
+  border: 1px solid #ffc10744;
+}
+
+.ll-score-cold {
+  background: #2a2a3d;
+  color: #888;
+  border: 1px solid #2a2a3d;
+}
+
+/* Signal Tags */
+.ll-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+.ll-signal-tag {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: #7c5cfc18;
+  color: #7c5cfc;
+  border: 1px solid #7c5cfc33;
+}
+
 /* Spinner */
 .ll-spinner {
   display: inline-block;

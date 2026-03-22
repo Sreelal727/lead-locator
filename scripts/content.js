@@ -11,7 +11,10 @@
   let panelVisible = true;
   let scanning = false;
   let results = [];
+  let filteredResults = [];
   let savedNames = new Set();
+  let activeFilters = { noWebsite: false, lowReviews: false, lowRating: false };
+  let activeStrategy = 'default';
 
   // Load existing saved leads to mark them
   chrome.runtime.sendMessage({ type: 'GET_LEADS' }, (res) => {
@@ -37,6 +40,17 @@
           <span id="ll-status-text">Ready - navigate to a Maps search to scan</span>
         </div>
         <button class="ll-scan-btn" id="ll-scan-btn">Scan Visible Listings</button>
+        <div class="ll-filters" id="ll-filters">
+          <div class="ll-filters-title">Filter leads:</div>
+          <div class="ll-filter-row">
+            <label class="ll-filter-toggle"><input type="checkbox" id="ll-filter-nosite"> No website</label>
+            <label class="ll-filter-toggle"><input type="checkbox" id="ll-filter-lowrev"> &lt; 50 reviews</label>
+            <label class="ll-filter-toggle"><input type="checkbox" id="ll-filter-lowrate"> &lt; 4.0 rating</label>
+          </div>
+          <div class="ll-filter-row">
+            <label class="ll-filter-toggle"><input type="checkbox" id="ll-filter-hasphone"> Has phone</label>
+          </div>
+        </div>
         <div id="ll-results-container"></div>
       </div>
     `;
@@ -65,6 +79,11 @@
     });
 
     document.getElementById('ll-scan-btn').addEventListener('click', scanListings);
+
+    // Filter checkboxes
+    ['ll-filter-nosite', 'll-filter-lowrev', 'll-filter-lowrate', 'll-filter-hasphone'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', applyFilters);
+    });
 
     // Make panel draggable
     makeDraggable(panel, document.getElementById('ll-panel-header'));
@@ -110,13 +129,77 @@
     // Small delay to let UI update
     setTimeout(() => {
       results = extractListings();
+      // Score each lead for quality
+      results.forEach((biz) => {
+        biz.leadScore = computeLeadScore(biz);
+      });
+      // Sort by lead score (highest first = most likely to need services)
+      results.sort((a, b) => b.leadScore - a.leadScore);
+
       scanning = false;
       scanBtn.disabled = false;
       scanBtn.textContent = 'Scan Visible Listings';
       statusDot.classList.add('ll-idle');
-      statusText.textContent = `Found ${results.length} businesses`;
-      renderResults();
+      applyFilters();
     }, 800);
+  }
+
+  // ---- Lead Quality Score ----
+  // Higher score = more likely to need your product/service
+  function computeLeadScore(biz) {
+    let score = 50; // base score
+
+    // No website = high opportunity (they need digital presence)
+    if (!biz.website) score += 30;
+
+    // Low rating = they need help improving their business
+    const rating = parseFloat(biz.rating);
+    if (rating && rating < 3.5) score += 20;
+    else if (rating && rating < 4.0) score += 10;
+
+    // Few reviews = small/new business, easier to approach
+    const reviews = parseInt(biz.reviews);
+    if (!reviews || reviews < 10) score += 20;
+    else if (reviews < 50) score += 10;
+    else if (reviews > 500) score -= 10; // big chain, harder to sell to
+
+    // Has phone = you can actually reach them
+    if (biz.phone) score += 5;
+
+    // Has address = legitimate local business
+    if (biz.address) score += 5;
+
+    return Math.max(0, Math.min(100, score));
+  }
+
+  // ---- Apply Filters ----
+  function applyFilters() {
+    const noSite = document.getElementById('ll-filter-nosite').checked;
+    const lowRev = document.getElementById('ll-filter-lowrev').checked;
+    const lowRate = document.getElementById('ll-filter-lowrate').checked;
+    const hasPhone = document.getElementById('ll-filter-hasphone').checked;
+
+    filteredResults = results.filter((biz) => {
+      if (noSite && biz.website) return false;
+      if (lowRev) {
+        const rev = parseInt(biz.reviews);
+        if (rev && rev >= 50) return false;
+      }
+      if (lowRate) {
+        const rat = parseFloat(biz.rating);
+        if (rat && rat >= 4.0) return false;
+      }
+      if (hasPhone && !biz.phone) return false;
+      return true;
+    });
+
+    const statusText = document.getElementById('ll-status-text');
+    if (filteredResults.length !== results.length) {
+      statusText.textContent = `Showing ${filteredResults.length} of ${results.length} businesses`;
+    } else {
+      statusText.textContent = `Found ${results.length} businesses`;
+    }
+    renderResults();
   }
 
   // ---- Extract business data from Google Maps DOM ----
@@ -258,6 +341,7 @@
   // ---- Render Results ----
   function renderResults() {
     const container = document.getElementById('ll-results-container');
+    const displayResults = filteredResults.length > 0 || results.length > 0 ? filteredResults : [];
 
     if (results.length === 0) {
       container.innerHTML = `
@@ -268,22 +352,45 @@
       return;
     }
 
+    if (displayResults.length === 0) {
+      container.innerHTML = `
+        <div class="ll-no-results">
+          No listings match your filters. Try unchecking some filters above.
+        </div>
+      `;
+      return;
+    }
+
     let html = `
       <div class="ll-results-header">
         <h3>Listings Found</h3>
-        <span class="ll-results-count">${results.length} results</span>
+        <span class="ll-results-count">${displayResults.length} results</span>
       </div>
     `;
 
-    results.forEach((biz, idx) => {
+    displayResults.forEach((biz, idx) => {
       const isSaved = savedNames.has(biz.name + '|' + biz.address);
+      const scoreClass = biz.leadScore >= 70 ? 'll-score-hot' : biz.leadScore >= 50 ? 'll-score-warm' : 'll-score-cold';
+      const scoreLabel = biz.leadScore >= 70 ? 'Hot' : biz.leadScore >= 50 ? 'Warm' : 'Low';
+      // Build signal tags
+      const signals = [];
+      if (!biz.website) signals.push('No website');
+      const rev = parseInt(biz.reviews);
+      if (!rev || rev < 50) signals.push('Few reviews');
+      const rat = parseFloat(biz.rating);
+      if (rat && rat < 4.0) signals.push('Low rating');
+
       html += `
         <div class="ll-result-card" data-idx="${idx}">
-          <div class="ll-biz-name">${escapeHtml(biz.name)}</div>
+          <div class="ll-card-top">
+            <div class="ll-biz-name">${escapeHtml(biz.name)}</div>
+            <span class="ll-lead-score ${scoreClass}" title="Lead score: ${biz.leadScore}/100">${scoreLabel} ${biz.leadScore}</span>
+          </div>
           ${biz.category ? `<div class="ll-biz-category">${escapeHtml(biz.category)}</div>` : ''}
           ${biz.rating ? `<div class="ll-biz-rating">${'&#9733;'.repeat(Math.round(parseFloat(biz.rating)))} ${biz.rating} (${biz.reviews || '?'} reviews)</div>` : ''}
           ${biz.address ? `<div class="ll-biz-detail">${escapeHtml(biz.address)}</div>` : ''}
           ${biz.phone ? `<div class="ll-biz-detail">${escapeHtml(biz.phone)}</div>` : ''}
+          ${signals.length > 0 ? `<div class="ll-signals">${signals.map(s => `<span class="ll-signal-tag">${s}</span>`).join('')}</div>` : ''}
           <div class="ll-result-actions">
             <button class="ll-save-btn ${isSaved ? 'll-saved' : ''}" data-idx="${idx}">
               ${isSaved ? 'Saved' : 'Save Lead'}
@@ -303,9 +410,9 @@
 
     container.innerHTML = html;
 
-    // Attach event listeners
+    // Attach event listeners — idx maps to filteredResults
     container.querySelectorAll('.ll-save-btn').forEach((btn) => {
-      btn.addEventListener('click', () => saveLead(parseInt(btn.dataset.idx), btn));
+      btn.addEventListener('click', () => saveFilteredLead(parseInt(btn.dataset.idx), btn));
     });
 
     container.querySelectorAll('.ll-open-btn').forEach((btn) => {
@@ -326,8 +433,8 @@
   }
 
   // ---- Save Lead ----
-  function saveLead(idx, btn) {
-    const biz = results[idx];
+  function saveFilteredLead(idx, btn) {
+    const biz = filteredResults[idx];
     if (!biz) return;
 
     chrome.runtime.sendMessage({ type: 'SAVE_LEAD', lead: biz }, (res) => {
@@ -343,7 +450,7 @@
   }
 
   function saveAllLeads() {
-    results.forEach((biz, idx) => {
+    filteredResults.forEach((biz, idx) => {
       const key = biz.name + '|' + biz.address;
       if (!savedNames.has(key)) {
         chrome.runtime.sendMessage({ type: 'SAVE_LEAD', lead: biz }, (res) => {
@@ -365,10 +472,10 @@
 
   // ---- Export CSV directly from content script ----
   function exportCurrentResults() {
-    if (results.length === 0) return;
+    if (filteredResults.length === 0) return;
 
-    const headers = ['Name', 'Category', 'Address', 'Phone', 'Rating', 'Reviews', 'Website', 'Maps URL'];
-    const rows = results.map((l) => [
+    const headers = ['Name', 'Category', 'Address', 'Phone', 'Rating', 'Reviews', 'Website', 'Maps URL', 'Lead Score'];
+    const rows = filteredResults.map((l) => [
       csvEscape(l.name),
       csvEscape(l.category),
       csvEscape(l.address),
@@ -377,6 +484,7 @@
       l.reviews || '',
       csvEscape(l.website),
       csvEscape(l.mapsUrl),
+      l.leadScore || '',
     ]);
 
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -412,6 +520,37 @@
     }
     return str;
   }
+
+  // ---- Listen for strategy and filters from popup ----
+  chrome.storage.local.get(['activeStrategy', 'activeFilters'], (result) => {
+    if (result.activeStrategy) {
+      activeStrategy = result.activeStrategy;
+      // Auto-check filters based on strategy
+      if (activeStrategy === 'noWebsite') {
+        const cb = document.getElementById('ll-filter-nosite');
+        if (cb) cb.checked = true;
+      } else if (activeStrategy === 'lowRated') {
+        const cb = document.getElementById('ll-filter-lowrate');
+        if (cb) cb.checked = true;
+      }
+    }
+    // Apply filter preferences set in popup
+    if (result.activeFilters) {
+      const f = result.activeFilters;
+      if (f.noWebsite) {
+        const cb = document.getElementById('ll-filter-nosite');
+        if (cb) cb.checked = true;
+      }
+      if (f.lowReviews) {
+        const cb = document.getElementById('ll-filter-lowrev');
+        if (cb) cb.checked = true;
+      }
+      if (f.lowRating) {
+        const cb = document.getElementById('ll-filter-lowrate');
+        if (cb) cb.checked = true;
+      }
+    }
+  });
 
   // ---- Initialize ----
   createPanel();

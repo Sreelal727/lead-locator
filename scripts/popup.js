@@ -16,6 +16,15 @@ const NICHE_MAP = {
   photography: 'photography studios',
 };
 
+// Search strategies to find higher-quality leads
+const SEARCH_STRATEGIES = {
+  default: { label: 'All businesses', modifier: '' },
+  small: { label: 'Small / local businesses', modifier: 'small local independent' },
+  new: { label: 'Newly opened', modifier: 'new recently opened' },
+  lowRated: { label: 'Low-rated (need help)', modifier: '' }, // filtered post-scan
+  noWebsite: { label: 'Without website', modifier: '' }, // filtered post-scan
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   const nicheSelect = document.getElementById('niche-select');
   const customGroup = document.getElementById('custom-niche-group');
@@ -59,6 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
   searchBtn.addEventListener('click', () => {
     const niche = nicheSelect.value;
     const location = locationInput.value.trim();
+    const strategySelect = document.getElementById('strategy-select');
+    const strategy = strategySelect ? strategySelect.value : 'default';
     let searchQuery = '';
 
     if (niche === 'custom') {
@@ -72,13 +83,29 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (location) {
-      searchQuery += ` in ${location}`;
+    // Apply search strategy modifier to the query
+    const strat = SEARCH_STRATEGIES[strategy] || SEARCH_STRATEGIES.default;
+    if (strat.modifier) {
+      searchQuery = strat.modifier + ' ' + searchQuery;
     }
 
+    if (location) {
+      searchQuery += ' in ' + location;
+    }
+
+    // Save filter preferences so content script can auto-apply them
+    const filters = {
+      noWebsite: document.getElementById('filter-no-website').checked,
+      lowReviews: document.getElementById('filter-low-reviews').checked,
+      lowRating: document.getElementById('filter-low-rating').checked,
+    };
+    chrome.storage.local.set({ activeFilters: filters });
+
+    // Send strategy info so content script can filter results
     chrome.runtime.sendMessage({
       type: 'OPEN_MAPS_SEARCH',
       query: searchQuery,
+      strategy: strategy,
     });
   });
 
