@@ -15,6 +15,7 @@
   let savedNames = new Set();
   let activeFilters = { noWebsite: false, lowReviews: false, lowRating: false };
   let activeStrategy = 'default';
+  let productKeywords = [];
 
   // Load existing saved leads to mark them
   chrome.runtime.sendMessage({ type: 'GET_LEADS' }, (res) => {
@@ -129,8 +130,9 @@
     // Small delay to let UI update
     setTimeout(() => {
       results = extractListings();
-      // Score each lead for quality
+      // Find keyword matches and score each lead
       results.forEach((biz) => {
+        biz.keywordMatches = findKeywordMatches(biz);
         biz.leadScore = computeLeadScore(biz);
       });
       // Sort by lead score (highest first = most likely to need services)
@@ -142,6 +144,13 @@
       statusDot.classList.add('ll-idle');
       applyFilters();
     }, 800);
+  }
+
+  // ---- Find keyword matches in a business listing ----
+  function findKeywordMatches(biz) {
+    if (!productKeywords || productKeywords.length === 0) return [];
+    const haystack = [biz.name, biz.category, biz.address].filter(Boolean).join(' ').toLowerCase();
+    return productKeywords.filter((kw) => haystack.includes(kw.toLowerCase()));
   }
 
   // ---- Lead Quality Score ----
@@ -168,6 +177,11 @@
 
     // Has address = legitimate local business
     if (biz.address) score += 5;
+
+    // Boost score for keyword matches from product description
+    if (biz.keywordMatches && biz.keywordMatches.length > 0) {
+      score += Math.min(biz.keywordMatches.length * 8, 25);
+    }
 
     return Math.max(0, Math.min(100, score));
   }
@@ -379,6 +393,10 @@
       if (!rev || rev < 50) signals.push('Few reviews');
       const rat = parseFloat(biz.rating);
       if (rat && rat < 4.0) signals.push('Low rating');
+      // Add keyword match signals
+      if (biz.keywordMatches && biz.keywordMatches.length > 0) {
+        biz.keywordMatches.forEach((kw) => signals.push('\u2713 ' + kw));
+      }
 
       html += `
         <div class="ll-result-card" data-idx="${idx}">
@@ -390,7 +408,7 @@
           ${biz.rating ? `<div class="ll-biz-rating">${'&#9733;'.repeat(Math.round(parseFloat(biz.rating)))} ${biz.rating} (${biz.reviews || '?'} reviews)</div>` : ''}
           ${biz.address ? `<div class="ll-biz-detail">${escapeHtml(biz.address)}</div>` : ''}
           ${biz.phone ? `<div class="ll-biz-detail">${escapeHtml(biz.phone)}</div>` : ''}
-          ${signals.length > 0 ? `<div class="ll-signals">${signals.map(s => `<span class="ll-signal-tag">${s}</span>`).join('')}</div>` : ''}
+          ${signals.length > 0 ? `<div class="ll-signals">${signals.map(s => `<span class="ll-signal-tag${s.startsWith('\u2713') ? ' ll-signal-match' : ''}">${s}</span>`).join('')}</div>` : ''}
           <div class="ll-result-actions">
             <button class="ll-save-btn ${isSaved ? 'll-saved' : ''}" data-idx="${idx}">
               ${isSaved ? 'Saved' : 'Save Lead'}
@@ -474,7 +492,7 @@
   function exportCurrentResults() {
     if (filteredResults.length === 0) return;
 
-    const headers = ['Name', 'Category', 'Address', 'Phone', 'Rating', 'Reviews', 'Website', 'Maps URL', 'Lead Score'];
+    const headers = ['Name', 'Category', 'Address', 'Phone', 'Rating', 'Reviews', 'Website', 'Maps URL', 'Lead Score', 'Keyword Matches'];
     const rows = filteredResults.map((l) => [
       csvEscape(l.name),
       csvEscape(l.category),
@@ -485,6 +503,7 @@
       csvEscape(l.website),
       csvEscape(l.mapsUrl),
       l.leadScore || '',
+      csvEscape((l.keywordMatches || []).join('; ')),
     ]);
 
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -521,8 +540,8 @@
     return str;
   }
 
-  // ---- Listen for strategy and filters from popup ----
-  chrome.storage.local.get(['activeStrategy', 'activeFilters'], (result) => {
+  // ---- Listen for strategy, filters, and keywords from popup ----
+  chrome.storage.local.get(['activeStrategy', 'activeFilters', 'productKeywords'], (result) => {
     if (result.activeStrategy) {
       activeStrategy = result.activeStrategy;
       // Auto-check filters based on strategy
@@ -549,6 +568,10 @@
         const cb = document.getElementById('ll-filter-lowrate');
         if (cb) cb.checked = true;
       }
+    }
+    // Load product keywords for relevance matching
+    if (result.productKeywords && result.productKeywords.length > 0) {
+      productKeywords = result.productKeywords;
     }
   });
 

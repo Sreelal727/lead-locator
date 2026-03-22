@@ -25,11 +25,66 @@ const SEARCH_STRATEGIES = {
   noWebsite: { label: 'Without website', modifier: '' }, // filtered post-scan
 };
 
+// Stop words to filter out from keyword extraction
+const STOP_WORDS = new Set([
+  'a', 'an', 'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 'been',
+  'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+  'should', 'may', 'might', 'shall', 'can', 'need', 'dare', 'ought', 'used',
+  'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into',
+  'through', 'during', 'before', 'after', 'above', 'below', 'between', 'out',
+  'off', 'over', 'under', 'again', 'further', 'then', 'once', 'that', 'this',
+  'these', 'those', 'it', 'its', 'they', 'them', 'their', 'we', 'our', 'you',
+  'your', 'he', 'she', 'his', 'her', 'my', 'i', 'me', 'who', 'which', 'what',
+  'where', 'when', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most',
+  'other', 'some', 'such', 'no', 'not', 'only', 'same', 'so', 'than', 'too',
+  'very', 'just', 'about', 'also', 'based', 'using', 'helps', 'help', 'tool',
+  'system', 'software', 'platform', 'app', 'application', 'solution', 'service',
+  'provides', 'allows', 'enables', 'designed', 'built', 'made', 'handles',
+  'cloud', 'web', 'online', 'digital', 'smart', 'new', 'simple', 'easy',
+]);
+
+// Extract meaningful keywords from product description
+function extractKeywords(text) {
+  if (!text || !text.trim()) return [];
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
+
+  // Deduplicate and keep order of first occurrence
+  const seen = new Set();
+  const unique = [];
+  for (const w of words) {
+    if (!seen.has(w)) {
+      seen.add(w);
+      unique.push(w);
+    }
+  }
+
+  // Also extract two-word phrases that might be meaningful
+  const rawWords = text.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/);
+  for (let i = 0; i < rawWords.length - 1; i++) {
+    const phrase = rawWords[i] + ' ' + rawWords[i + 1];
+    const bothUseful = !STOP_WORDS.has(rawWords[i]) && !STOP_WORDS.has(rawWords[i + 1])
+      && rawWords[i].length > 2 && rawWords[i + 1].length > 2;
+    if (bothUseful && !seen.has(phrase)) {
+      seen.add(phrase);
+      unique.push(phrase);
+    }
+  }
+
+  return unique.slice(0, 12); // cap at 12 keywords
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const nicheSelect = document.getElementById('niche-select');
   const customGroup = document.getElementById('custom-niche-group');
   const customNiche = document.getElementById('custom-niche');
   const productName = document.getElementById('product-name');
+  const productDesc = document.getElementById('product-desc');
+  const keywordBar = document.getElementById('keyword-bar');
+  const keywordChips = document.getElementById('keyword-chips');
   const locationInput = document.getElementById('location-input');
   const searchBtn = document.getElementById('search-btn');
   const saveProfileBtn = document.getElementById('save-profile-btn');
@@ -39,18 +94,67 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportCsvBtn = document.getElementById('export-csv-btn');
   const clearLeadsBtn = document.getElementById('clear-leads-btn');
 
+  let activeKeywords = []; // keywords currently included in search
+  let excludedKeywords = new Set(); // keywords user toggled off
+
   // Load saved profile
   chrome.runtime.sendMessage({ type: 'GET_PROFILE' }, (res) => {
     if (res && res.profile) {
       productName.value = res.profile.productName || '';
       nicheSelect.value = res.profile.niche || '';
       locationInput.value = res.profile.location || '';
+      productDesc.value = res.profile.productDesc || '';
       if (res.profile.niche === 'custom') {
         customGroup.classList.remove('hidden');
         customNiche.value = res.profile.customNiche || '';
       }
+      if (res.profile.excludedKeywords) {
+        excludedKeywords = new Set(res.profile.excludedKeywords);
+      }
+      if (res.profile.productDesc) {
+        refreshKeywords();
+      }
     }
   });
+
+  // Extract keywords on description input (debounced)
+  let descTimer = null;
+  productDesc.addEventListener('input', () => {
+    clearTimeout(descTimer);
+    descTimer = setTimeout(refreshKeywords, 400);
+  });
+
+  function refreshKeywords() {
+    const allKeywords = extractKeywords(productDesc.value);
+    activeKeywords = allKeywords.filter((k) => !excludedKeywords.has(k));
+
+    if (allKeywords.length === 0) {
+      keywordBar.classList.add('hidden');
+      keywordChips.innerHTML = '';
+      return;
+    }
+
+    keywordBar.classList.remove('hidden');
+    keywordChips.innerHTML = allKeywords
+      .map((kw) => {
+        const isExcluded = excludedKeywords.has(kw);
+        return `<span class="keyword-chip ${isExcluded ? 'excluded' : ''}" data-kw="${escapeAttr(kw)}" title="Click to ${isExcluded ? 'include' : 'exclude'}">${escapeHtml(kw)} <span class="chip-x">${isExcluded ? '+' : '×'}</span></span>`;
+      })
+      .join('');
+
+    // Toggle keyword on click
+    keywordChips.querySelectorAll('.keyword-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const kw = chip.dataset.kw;
+        if (excludedKeywords.has(kw)) {
+          excludedKeywords.delete(kw);
+        } else {
+          excludedKeywords.add(kw);
+        }
+        refreshKeywords();
+      });
+    });
+  }
 
   // Load leads
   loadLeads();
@@ -89,6 +193,13 @@ document.addEventListener('DOMContentLoaded', () => {
       searchQuery = strat.modifier + ' ' + searchQuery;
     }
 
+    // Append active keywords from product description to refine the search
+    if (activeKeywords.length > 0) {
+      // Pick the top 3-4 most relevant keywords to avoid overly long queries
+      const topKeywords = activeKeywords.slice(0, 4).join(' ');
+      searchQuery += ' ' + topKeywords;
+    }
+
     if (location) {
       searchQuery += ' in ' + location;
     }
@@ -99,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
       lowReviews: document.getElementById('filter-low-reviews').checked,
       lowRating: document.getElementById('filter-low-rating').checked,
     };
-    chrome.storage.local.set({ activeFilters: filters });
+    chrome.storage.local.set({ activeFilters: filters, productKeywords: activeKeywords });
 
     // Send strategy info so content script can filter results
     chrome.runtime.sendMessage({
@@ -113,6 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
   saveProfileBtn.addEventListener('click', () => {
     const profile = {
       productName: productName.value.trim(),
+      productDesc: productDesc.value.trim(),
+      excludedKeywords: Array.from(excludedKeywords),
       niche: nicheSelect.value,
       customNiche: customNiche.value.trim(),
       location: locationInput.value.trim(),
